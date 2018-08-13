@@ -10,6 +10,7 @@
 
 -export([start_link/0,
 	 add_client/1,
+	 public_key/0,
 	 debug/0]).
 
 -export([init/1,
@@ -29,6 +30,9 @@ start_link() ->
 add_client(PublicKey) ->
     gen_server:call(?SERVER, {add_client, PublicKey}).
 
+public_key() ->
+    gen_server:call(?SERVER, public_key).
+
 debug() ->
     gen_server:cast(?SERVER, debug).
 
@@ -36,7 +40,9 @@ debug() ->
 %%
 %% --------------------------------------------------------------
 
--record(auth_record, {private_key={error, not_loaded}, client_keys=sets:new()}).
+-record(auth_record, {private_key={error, not_loaded},
+		      public_key={error, not_loaded},
+		      client_keys=sets:new()}).
 
 %% --------------------------------------------------------------
 %%
@@ -46,7 +52,10 @@ init(_) ->
     {ok, #auth_record{}, 0}.
 
 handle_call({add_client, Key}, _From, Record=#auth_record{client_keys=ClientKeys}) ->
-    {reply, {ok, key_added}, Record#auth_record{client_keys=sets:add_element(Key, ClientKeys)}}.
+    {reply, {ok, key_added}, Record#auth_record{client_keys=sets:add_element(Key, ClientKeys)}};
+
+handle_call(public_key, _From, Record=#auth_record{public_key=PublicKey}) ->
+    {reply, {ok, PublicKey}, Record}.
 
 handle_cast(debug, Record=#auth_record{private_key=PrivateKey, client_keys=ClientKeys}) ->
     io:fwrite("Private key:~n"),
@@ -60,7 +69,9 @@ handle_cast(_What, Record) ->
 
 handle_info(timeout, Record) ->
     PrivateKey = load_private_key(),
-    {noreply, Record#auth_record{private_key=PrivateKey}};
+    PublicKey = load_public_key(),
+    {noreply, Record#auth_record{private_key=PrivateKey,
+				 public_key=PublicKey}};
 
 handle_info(_What, State) ->
     {noreply, State}.
@@ -69,6 +80,7 @@ terminate(_Reason, _State) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
+    io:fwrite("Code Changed :)~n"),
     {ok, State}.
 
 %% --------------------------------------------------------------
@@ -80,6 +92,11 @@ load_private_key() ->
     {ok, FileData} = file:read_file(filename:join([Dir, "private.pem"])),
     [KeyData] = public_key:pem_decode(FileData),
     public_key:pem_entry_decode(KeyData).
+
+load_public_key() ->
+    Dir = code:priv_dir(eaglebit),
+    {ok, FileData} = file:read_file(filename:join([Dir, "public.pem"])),
+    FileData.
 
 debug_clients([]) ->
     ok;
