@@ -10,8 +10,7 @@
 
 -export([start_link/0,
 	 add_client/1,
-	 public_key/0,
-	 debug/0]).
+	 public_key/0]).
 
 -export([init/1,
 	 handle_call/3,
@@ -33,9 +32,6 @@ add_client(PublicKey) ->
 public_key() ->
     gen_server:call(?SERVER, public_key).
 
-debug() ->
-    gen_server:cast(?SERVER, debug).
-
 %% --------------------------------------------------------------
 %%
 %% --------------------------------------------------------------
@@ -56,13 +52,6 @@ handle_call({add_client, Key}, _From, Record=#auth_record{client_keys=ClientKeys
 
 handle_call(public_key, _From, Record=#auth_record{public_key=PublicKey}) ->
     {reply, {ok, PublicKey}, Record}.
-
-handle_cast(debug, Record=#auth_record{private_key=PrivateKey, client_keys=ClientKeys}) ->
-    io:fwrite("Private key:~n"),
-    io:fwrite("~p~n", [PrivateKey]),
-    io:fwrite("Clients key:~n"),
-    debug_clients(sets:to_list(ClientKeys)),
-    {noreply, Record};
 
 handle_cast(_What, Record) ->
     {noreply, Record}.
@@ -97,10 +86,3 @@ load_public_key() ->
     Dir = code:priv_dir(eaglebit),
     {ok, FileData} = file:read_file(filename:join([Dir, "public.pem"])),
     FileData.
-
-debug_clients([]) ->
-    ok;
-
-debug_clients([Key | Keys]) ->
-    io:fwrite(" ~p~n", [Key]),
-    debug_clients(Keys).
