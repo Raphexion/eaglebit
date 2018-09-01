@@ -27,8 +27,17 @@ start_link() ->
 %%====================================================================
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
-init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+init(_) ->
+    SupFlags = #{strategy => simple_one_for_one,
+                 intensity => 0,
+                 period => 1},
+
+    ChildSpecs = [#{id => kiks_amqp_sup,
+                    start => {kiks_amqp_sup, start_link, []},
+                    shutdown => brutal_kill,
+		    type => supervisor}],
+
+    {ok, {SupFlags, ChildSpecs}}.
 
 %%====================================================================
 %% Internal functions
