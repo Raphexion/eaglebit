@@ -1,4 +1,4 @@
--module(file_server).
+-module(download_server).
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
@@ -36,7 +36,7 @@ handle_cast(_What, State) ->
     {noreply, State}.
 
 handle_info(What, State) ->
-    io:fwrite("FILE SERVER: ~p~n", [What]),
+    io:fwrite("DOWNLOAD SERVER: ~p~n", [What]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
